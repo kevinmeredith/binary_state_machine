@@ -7,12 +7,8 @@ import Common.{Binary, State, TerminateStream}
 import scala.concurrent.{Future, TimeoutException, Await}
 import scala.concurrent.duration._
 import java.util.concurrent.TimeUnit
-
-/**
- * Accepts request to add a 0 or 1 to the existing "stream" of binary. 
- * 
- * 
- */ 
+import scala.util.{Try, Success, Failure}
+ 
  object Main {
 
  	def addToStream(b: Binary, counterActor: ActorRef): Unit = {
@@ -21,10 +17,13 @@ import java.util.concurrent.TimeUnit
 
  	def terminateStream(counterActor: ActorRef): Option[State] = {
  		implicit val timeout: akka.util.Timeout = Timeout(3, TimeUnit.SECONDS)
- 		val state: Future[State] = (counterActor ? TerminateStream).mapTo[State]
+ 		val state: Try[Future[State]] = Try { (counterActor ? TerminateStream).mapTo[State] }
  		try {
- 			val result: State = Await.result(state, 3 seconds)
- 			Some(result)
+ 			state match {
+ 				case Success(s) => Some(Await.result(s, 3.seconds))
+				case Failure(_) => None
+
+ 			}
  		}
  		catch {
  			case e: TimeoutException => println(e); None
