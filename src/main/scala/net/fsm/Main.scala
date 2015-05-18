@@ -11,21 +11,22 @@ import scala.util.{Try, Success, Failure}
  
  object Main {
 
+ 	sealed trait FailedStreamTermination
+ 	case object TimeoutFailure extends FailedStreamTermination
+ 	case object ClassCastFailure extends FailedStreamTermination
+
  	def addToStream(b: Binary, counterActor: ActorRef): Unit = 
  		counterActor ! b
 
- 	def terminateStream(counterActor: ActorRef): Option[State] = {
+ 	def terminateStream(counterActor: ActorRef): Either[FailedStreamTermination, State] = {
  		implicit val timeout: akka.util.Timeout = Timeout(3, TimeUnit.SECONDS)
- 		val state: Try[Future[State]] = Try { (counterActor ? TerminateStream).mapTo[State] }
- 		try {
- 			state match {
- 				case Success(s) => Some(Await.result(s, 3.seconds))
-				case Failure(_) => None
-
- 			}
- 		}
- 		catch {
- 			case e: TimeoutException => println(e); None
- 		}
+ 		try { 
+	 		val state: Future[State] = (counterActor ? TerminateStream).mapTo[State]
+			Right(Await.result(state, 3.seconds))
+		}
+		catch {
+			case _: TimeoutException   => Left(TimeoutFailure)
+			case _: ClassCastException => Left(ClassCastFailure)  
+		}
  	}
  }
