@@ -11,9 +11,8 @@ import scala.util.{Try, Success, Failure}
  
  object Main {
 
- 	def addToStream(b: Binary, counterActor: ActorRef): Unit = {
+ 	def addToStream(b: Binary, counterActor: ActorRef): Unit = 
  		counterActor ! b
- 	}
 
  	def terminateStream(counterActor: ActorRef): Option[State] = {
  		implicit val timeout: akka.util.Timeout = Timeout(3, TimeUnit.SECONDS)
